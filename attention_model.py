@@ -22,7 +22,7 @@ class AttentionModelFixed(NamedTuple):
                 glimpse_val=self.glimpse_val[:, key],
                 logit_key=self.logit_key[key]
             )
-        return super(AttentionModelFixed, self).__getitem__(key)
+        return tuple.__getitem__(self, key)
 
 class AttentionModel(nn.Module):
 

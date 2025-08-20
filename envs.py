@@ -1,7 +1,7 @@
-import gym
+import gymnasium as gym
 import numpy as np
 import torch
-from gym.spaces.box import Box
+from gymnasium.spaces.box import Box
 
 from wrapper.benchmarks import *
 from wrapper.monitor import *
@@ -46,7 +46,7 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets, args):
                            sample_right_bound = args.sample_right_bound
                            )
 
-        env.seed(seed + rank)
+        env.unwrapped.seed(seed + rank)
 
         obs_shape = env.observation_space.shape
 
@@ -74,12 +74,12 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets, args):
 
 def make_vec_envs(args,
                   log_dir,
-                  allow_early_resets):
+                  allow_early_resets,
+                  device):
 
     env_name = args.id
     seed = args.seed
     num_processes = args.num_processes
-    device = args.device
 
     envs = [
         make_env(env_name, seed, i, log_dir, allow_early_resets, args)
@@ -117,11 +117,11 @@ def make_vec_envs(args,
 
 class TimeLimitMask(gym.Wrapper):
     def step(self, action):
-        obs, rew, done, info = self.env.step(action)
-        if done and self.env._max_episode_steps == self.env._elapsed_steps:
+        obs, rew, terminated, truncated, info = self.env.step(action)
+        if truncated:
             info['bad_transition'] = True
 
-        return obs, rew, done, info
+        return obs, rew, terminated, truncated, info
 
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)
@@ -176,7 +176,8 @@ class VecPyTorch(VecEnvWrapper):
         self.venv.step_async(actions)
 
     def step_wait(self):
-        obs, reward, done, info = self.venv.step_wait()
+        obs, reward, terminated, truncated, info = self.venv.step_wait()
         obs = torch.from_numpy(np.array(obs)).float().to(self.device)
         reward = torch.from_numpy(reward).unsqueeze(dim=1).float()
+        done = np.logical_or(terminated, truncated)
         return obs, reward, done, info

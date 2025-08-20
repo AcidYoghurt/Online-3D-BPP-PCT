@@ -1,6 +1,6 @@
 from .space import Space
 import numpy as np
-import gym
+import gymnasium as gym
 from .binCreator import RandomBoxCreator, LoadBoxCreator, BoxCreator
 import torch
 import random
@@ -177,10 +177,11 @@ class PackingContinuous(gym.Env):
 
         if not succeeded:
             reward = 0.0
-            done = True
+            terminated = True
+            truncated = False
             info = {'counter': len(self.space.boxes), 'ratio': self.space.get_ratio(),
                     'reward': self.space.get_ratio() * 10}
-            return self.cur_observation(), reward, done, info
+            return self.cur_observation(), reward, terminated, truncated, info
 
         ################################################
         ############# cal leaf nodes here ##############
@@ -201,8 +202,8 @@ class PackingContinuous(gym.Env):
         self.box_creator.generate_box_size()  # add a new box to the list
         reward = box_ratio * 10
 
-        done = False
+        terminated = False
+        truncated = False
         info = dict()
         info['counter'] = len(self.space.boxes)
-        return self.cur_observation(), reward, done, info
-
+        return self.cur_observation(), reward, terminated, truncated, info

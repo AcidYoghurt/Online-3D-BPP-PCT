@@ -5,7 +5,7 @@ import time
 from model import *
 from tools import *
 from evaluation_tools import evaluate
-import gym
+import gymnasium as gym
 
 def main(args):
     # The name of this evaluation, related file backups and experiment tensorboard logs will
@@ -33,7 +33,7 @@ def main(args):
                     internal_node_holder=args.internal_node_holder,
                     leaf_node_holder=args.leaf_node_holder,
                     LNES = args.lnes,
-                    shuffle=args.shuffle
+                    shuffle=args.shuffle,
                     sample_from_distribution=args.sample_from_distribution,
                     sample_left_bound=args.sample_left_bound,
                     sample_right_bound=args.sample_right_bound

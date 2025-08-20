@@ -5,7 +5,7 @@ import torch.nn as nn
 import argparse
 import givenData
 import numpy as np
-from gym.envs.registration import register
+from gymnasium.envs.registration import register
 
 def init(module, weight_init, bias_init, gain=1):
     weight_init(module.weight.data, gain=gain)

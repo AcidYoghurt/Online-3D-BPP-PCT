@@ -1,3 +1,4 @@
+> <div style="text-align: center;">适配 Python = 3.10</div>
 ## Introduction
 > We are committed to continuously promoting the development of 3D packing technology.
 >
@@ -92,25 +93,25 @@ python main.py --continuous --sample-from-distribution --setting 1 --internal-no
 #### Warm start
 You can initialize a run using a pre-trained model:
 ```bash
-python main.py --load-model --model-path path/to/your/model
+python main.py --load-model --model-path resources/models/[模型名字]
 ```
 
 ### Evaluation
 To evaluate a model, you can add the `--evaluate` flag to `evaluation.py`:
 ```bash
-python evaluation.py --evaluate --load-model --model-path path/to/your/model --load-dataset --dataset-path path/to/your/dataset
+python evaluation.py --evaluate --load-model --model-path resources/models/[模型名字] --load-dataset --dataset-path resources/data/[数据集名字]
 ```
 ### Heuristic
 Running heuristic.py for test heuristic baselines, the source of the heuristic algorithm has been marked in the code:
 
 Running heuristic on setting 1 （discrete） with the LASH method:
 ```
-python heuristic.py --setting 1 --heuristic LSAH --load-dataset  --dataset-path setting123_discrete.pt
+python heuristic.py --setting 1 --heuristic LSAH --load-dataset  --dataset-path resources/data/setting123_discrete.pt
 ```
 
 Running heuristic on setting 2 （continuous） with OnlineBPH method:
 ```
-python heuristic.py --continuous --setting 2 --heuristic OnlineBPH --load-dataset  --dataset-path setting2_continuous.pt
+python heuristic.py --continuous --setting 2 --heuristic OnlineBPH --load-dataset  --dataset-path resources/data/setting2_continuous.pt
 ```
 
 ### Help

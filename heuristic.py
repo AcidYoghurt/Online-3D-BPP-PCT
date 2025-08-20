@@ -124,7 +124,8 @@ def MACS(env, times = 2000):
                 # Place this item in the environment with the best action.
                 update_container(container, bestAction[1:4], env.next_box)
                 block_index += 1
-                _, _, done, _ = env.step(bestAction[0:3])
+                _, _, terminated, truncated, _ = env.step(bestAction[0:3])
+                done = terminated or truncated
             else:
                 # No feasible placement, this episode is done.
                 done = True
@@ -218,7 +219,8 @@ def LASH(env, times = 2000):
                 if lx < minXY[0]: minXY[0] = lx
                 if ly < minXY[1]: minXY[1] = ly
                 # Place this item in the environment with the best action.
-                _, _, done, _ = env.step(bestAction[0:3])
+                _, _, terminated, truncated, _ = env.step(bestAction[0:3])
+                done = terminated or truncated
             else:
                 # No feasible placement, this episode is done.
                 done = True
@@ -286,8 +288,8 @@ def heightmap_min(env, times = 2000):
 
             if len(bestAction) != 0:
                 # Place this item in the environment with the best action.
-                env.step(bestAction)
-                done = False
+                _, _, terminated, truncated, _ = env.step(bestAction)
+                done = terminated or truncated
             else:
                 # No feasible placement, this episode is done.
                 done = True
@@ -348,8 +350,8 @@ def random(env, times = 2000):
                 # Pick one placement randomly from all possible placements
                 idx = np.random.randint(0, len(candidates))
                 env.next_box = candidates[idx][0]
-                env.step(candidates[idx][1])
-                done = False
+                _, _, terminated, truncated, _ = env.step(candidates[idx][1])
+                done = terminated or truncated
             else:
                 # No feasible placement, this episode is done.
                 done = True
@@ -417,7 +419,8 @@ def OnlineBPH(env, times = 2000):
 
             if bestAction is not None:
                 # Place this item in the environment with the best action.
-                _, _, done, _ = env.step(bestAction)
+                _, _, terminated, truncated, _ = env.step(bestAction)
+                done = terminated or truncated
             else:
                 # No feasible placement, this episode is done.
                 done = True
@@ -485,8 +488,8 @@ def DBL(env, times = 2000):
 
             if len(bestAction) != 0:
                 # Place this item in the environment with the best action.
-                env.step(bestAction)
-                done = False
+                _, _, terminated, truncated, _ = env.step(bestAction)
+                done = terminated or truncated
             else:
                 # No feasible placement, this episode is done.
                 done = True
@@ -569,7 +572,8 @@ def BR(env, times = 2000):
 
             if bestAction is not None:
                 # Place this item in the environment with the best action.
-                _, _, done, _ = env.step(bestAction[0:3])
+                _, _, terminated, truncated, _ = env.step(bestAction[0:3])
+                done = terminated or truncated
             else:
                 # No feasible placement, this episode is done.
                 done = True
@@ -587,7 +591,7 @@ if __name__ == '__main__':
                      item_set = args.item_size_set,
                      data_name = args.dataset_path,
                      load_test_data = args.load_dataset,
-                     internal_node_holder = 80,
+                     internal_node_holder = 200,
                      leaf_node_holder = 1000)
 
     if args.heuristic == 'LSAH':

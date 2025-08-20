@@ -63,8 +63,7 @@ class train_tools(object):
             for step in range(num_steps):
                 with torch.no_grad():
                     selectedlogProb, selectedIdx, dist_entropy, _ = self.PCT_policy(all_nodes, normFactor = factor)
-                selected_leaf_node = leaf_nodes[batchX,selectedIdx.squeeze()]
-                obs, reward, done, infos = envs.step(selected_leaf_node.cpu().numpy())
+                obs, reward, done, infos = envs.step(selectedIdx)
                 all_nodes, leaf_nodes = tools.get_leaf_nodes(obs, args.internal_node_holder, args.leaf_node_holder)
                 all_nodes, leaf_nodes = all_nodes.to(device), leaf_nodes.to(device)
                 pct_rollout.insert(all_nodes, selectedIdx, selectedlogProb, reward, torch.tensor(1-done).unsqueeze(1))

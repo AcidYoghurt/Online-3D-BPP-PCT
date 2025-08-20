@@ -9,7 +9,7 @@ from envs import make_vec_envs
 import numpy as np
 import random
 from train_tools import train_tools
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 from tools import get_args, registration_envs
 
 def main(args):
@@ -19,11 +19,13 @@ def main(args):
     custom = input('Please input the experiment name\n')
     timeStr = custom + '-' + time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time()))
 
-    if args.no_cuda:
+    if args.no_cuda or not torch.cuda.is_available():
         device = torch.device('cpu')
+        print("WARNING: CUDA is not available. Running on CPU.")
     else:
         device = torch.device('cuda', args.device)
         torch.cuda.set_device(args.device)
+        print(f"Using CUDA device: {torch.cuda.get_device_name(args.device)}")
 
     torch.set_num_threads(1)
     torch.backends.cudnn.deterministic = True
@@ -37,10 +39,10 @@ def main(args):
     log_writer_path = './logs/runs/{}'.format('PCT-' + timeStr)
     if not os.path.exists(log_writer_path):
         os.makedirs(log_writer_path)
-    writer = SummaryWriter(logdir=log_writer_path)
+    writer = SummaryWriter(log_dir=log_writer_path)
 
     # Create parallel packing environments to collect training samples online
-    envs = make_vec_envs(args, './logs/runinfo', True)
+    envs = make_vec_envs(args, './logs/runinfo', True, device)
 
     # Create the main actor & critic networks of PCT
     PCT_policy =  DRL_GAT(args)

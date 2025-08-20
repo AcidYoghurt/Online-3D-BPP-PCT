@@ -1,6 +1,6 @@
 from .space import Space
 import numpy as np
-import gym
+import gymnasium as gym
 from .binCreator import RandomBoxCreator, LoadBoxCreator, BoxCreator
 import torch
 import random
@@ -39,8 +39,14 @@ class PackingDiscrete(gym.Env):
 
         self.test = load_test_data
         self.observation_space = gym.spaces.Box(low=0.0, high=self.space.height,
-                                                shape=((self.internal_node_holder + self.leaf_node_holder + self.next_holder) * 9,))
-        self.next_box_vec = np.zeros((self.next_holder, 9))
+                                                shape=((self.internal_node_holder + self.leaf_node_holder + self.next_holder) * 9,),
+                                                dtype=np.float32)
+        self.next_box_vec = np.zeros((self.next_holder, 9), dtype=np.float32)
+
+        # 动作是选择一个叶节点。
+        self.action_space = gym.spaces.Discrete(self.leaf_node_holder)
+        # 这个变量用于存储上一次观测中生成的叶节点，以便在step函数中使用
+        self.current_leaf_nodes = np.zeros((self.leaf_node_holder, 9), dtype=np.float32)
 
         self.LNES = LNES  # Leaf Node Expansion Schemes: EMS (recommend), EV, EP, CP, FC
 
@@ -58,13 +64,14 @@ class PackingDiscrete(gym.Env):
         coming_box = self.next_box
         return (coming_box[0] * coming_box[1] * coming_box[2]) / (self.space.plain_size[0] * self.space.plain_size[1] * self.space.plain_size[2])
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
+        super().reset(seed=seed, options=options)
         self.box_creator.reset()
         self.packed = []
         self.space.reset()
         self.box_creator.generate_box_size()
         cur_observation = self.cur_observation()
-        return cur_observation
+        return cur_observation, {}
 
     # Count and return all PCT nodes.
     def cur_observation(self):
@@ -84,13 +91,14 @@ class PackingDiscrete(gym.Env):
                     self.next_den = np.random.random()
 
         boxes.append(self.space.box_vec)
-        leaf_nodes.append(self.get_possible_position())
+        self.current_leaf_nodes = self.get_possible_position()
+        leaf_nodes.append(self.current_leaf_nodes)
 
         next_box = sorted(list(self.next_box))
         self.next_box_vec[:, 3:6] = next_box
         self.next_box_vec[:, 0] = self.next_den
         self.next_box_vec[:, -1] = 1
-        return np.reshape(np.concatenate((*boxes, *leaf_nodes, self.next_box_vec)), (-1))
+        return np.reshape(np.concatenate((*boxes, *leaf_nodes, self.next_box_vec)), (-1)).astype(np.float32)
 
     # Generate the next item to be placed.
     def gen_next_box(self):
@@ -149,20 +157,26 @@ class PackingDiscrete(gym.Env):
         return action, next_box
 
     def step(self, action):
-        if len(action) != 3: action, next_box = self.LeafNode2Action(action)
-        else: next_box = self.next_box
-
+        # Heuristics pass a placement action [rot, x, y], but the RL agent passes an integer index.
+        if isinstance(action, (list, tuple, np.ndarray)):
+            # Placement from a heuristic
+            next_box = self.next_box
+        else:
+            # Index from the RL agent
+            chosen_leaf_node = self.current_leaf_nodes[action]
+            action, next_box = self.LeafNode2Action(chosen_leaf_node)
+ 
         idx = [action[1], action[2]]
-        bin_index = 0
         rotation_flag = action[0]
         succeeded = self.space.drop_box(next_box, idx, rotation_flag, self.next_den, self.setting)
 
         if not succeeded:
             reward = 0.0
-            done = True
+            terminated = True
+            truncated = False
             info = {'counter': len(self.space.boxes), 'ratio': self.space.get_ratio(),
                     'reward': self.space.get_ratio() * 10}
-            return self.cur_observation(), reward, done, info
+            return self.cur_observation(), reward, terminated, truncated, info
 
         ################################################
         ############# cal leaf nodes here ##############
@@ -175,15 +189,15 @@ class PackingDiscrete(gym.Env):
                                            packed_box.lz + packed_box.z])
 
         self.packed.append(
-            [packed_box.x, packed_box.y, packed_box.z, packed_box.lx, packed_box.ly, packed_box.lz, bin_index])
+            [packed_box.x, packed_box.y, packed_box.z, packed_box.lx, packed_box.ly, packed_box.lz, 0])
 
         box_ratio = self.get_box_ratio()
         self.box_creator.drop_box()  # remove current box from the list
         self.box_creator.generate_box_size()  # add a new box to the list
         reward = box_ratio * 10
 
-        done = False
+        terminated = False
+        truncated = False
         info = dict()
         info['counter'] = len(self.space.boxes)
-        return self.cur_observation(), reward, done, info
-
+        return self.cur_observation(), reward, terminated, truncated, info

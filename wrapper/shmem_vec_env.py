@@ -76,9 +76,9 @@ class ShmemVecEnv(VecEnv):
     def step_wait(self):
         outs = [pipe.recv() for pipe in self.parent_pipes]
         self.waiting_step = False
-        obs, rews, dones, infos = zip(*outs)
+        obs, rews, terminateds, truncateds, infos = zip(*outs)
         # return self._decode_obses(obs), np.array(rews), np.array(dones), infos
-        return obs, np.array(rews), np.array(dones), infos
+        return obs, np.array(rews), np.array(terminateds), np.array(truncateds), infos
 
     def close_extras(self):
         if self.waiting_step:
@@ -134,13 +134,13 @@ def _subproc_worker(pipe, parent_pipe, env_fn_wrapper, obs_bufs, obs_shapes, obs
         while True:
             cmd, data = pipe.recv()
             if cmd == 'reset':
-                # pipe.send(_write_obs(env.reset()))
-                pipe.send(env.reset())
+                obs, _ = env.reset()
+                pipe.send(obs)
             elif cmd == 'step':
-                obs, reward, done, info = env.step(data)
-                if done:
-                    obs = env.reset()
-                pipe.send((obs, reward, done, info))
+                obs, reward, terminated, truncated, info = env.step(data)
+                if terminated or truncated:
+                    obs, _ = env.reset()
+                pipe.send((obs, reward, terminated, truncated, info))
             elif cmd == 'render':
                 pipe.send(env.render(mode='rgb_array'))
             elif cmd == 'close':
